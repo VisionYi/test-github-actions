@@ -30,13 +30,13 @@ jobs:
           jq '.["http://localhost:8080/"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
-      - name: Load .env file to env $GITHUB_ENV
+      - name: Load .env file to env
         run: |
           cat VERSION >> $GITHUB_ENV
       
       - name: Print env value again
         run: |
-          echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
           echo "github.ref_name: ${{ github.ref_name }}"
   
