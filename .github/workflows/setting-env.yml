@@ -10,13 +10,13 @@ jobs:
   settingEnv:
     name: setting env
     runs-on: ubuntu-latest
-    env:
-      LHCI_PEPORT_LINK: 'default link'
     steps:
       - uses: actions/checkout@v2
       - name: Print env value
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
+        env:
+          LHCI_PEPORT_LINK: 'default link'
         
         # uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
       - name: Set env value from Json file value
