@@ -28,9 +28,11 @@ jobs:
       - name: Print env value again
         run: |
           echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
   
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
+        if: ${{ github.ref_name == 'master' }}
         env:
           SLACK_CHANNEL: report-h2-website
           SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
