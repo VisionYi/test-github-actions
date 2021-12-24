@@ -32,9 +32,8 @@ jobs:
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_CHANNEL: general
+          SLACK_CHANNEL: report-h2-website
           SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
-          SLACK_ICON: https://github.com/rtCamp.png?size=48
           SLACK_MESSAGE: ":rocket: Report Link: ${{ env.LHCI_PEPORT_LINK }}"
           SLACK_TITLE: Lighthouse Report
           SLACK_USERNAME: Github-Actions-CI
