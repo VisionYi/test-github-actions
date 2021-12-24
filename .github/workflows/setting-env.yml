@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Print env value
         run: |
-          echo "env.LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
       - name: Set env value
         run: |
           echo 'LHCI_LINKS<<EOF' >> $GITHUB_ENV
@@ -30,7 +30,7 @@ jobs:
       
       - name: Print env value again
         run: |
-          echo "env.LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
     
   # This workflow contains a single job called "build"
   build:
