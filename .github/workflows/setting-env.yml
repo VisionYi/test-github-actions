@@ -3,12 +3,7 @@
 name: Setting Env
 
 # Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: push
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -16,17 +11,17 @@ jobs:
     name: setting env
     runs-on: ubuntu-latest
     env:
-      LHCI_LINKS: 'default link'
+      LHCI_PEPORT_LINK: 'default link'
     steps:
       - uses: actions/checkout@v2
       - name: Print env value
         run: |
-          echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
         
         # uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
-      - name: Set env value
+      - name: Set env value from Json file value
         run: |
-          echo 'LHCI_LINKS<<EOF' >> $GITHUB_ENV
+          echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
           jq '.["http://localhost:8080/"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
@@ -34,3 +29,14 @@ jobs:
         run: |
           echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
   
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: general
+          SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
+          SLACK_ICON: https://github.com/rtCamp.png?size=48
+          SLACK_MESSAGE: ":rocket: Report Link: ${{ env.LHCI_PEPORT_LINK }}"
+          SLACK_TITLE: Lighthouse Report
+          SLACK_USERNAME: Github-Actions-CI
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        
