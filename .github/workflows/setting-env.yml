@@ -3,31 +3,41 @@
 name: Setting Env
 
 # Controls when the workflow will run
-on: push
+on: 
+  push:
+    paths:
+      - '.github/workflows/**'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   settingEnv:
     name: setting env
     runs-on: ubuntu-latest
+    env:
+      LHCI_PEPORT_LINK: 'default-link'
+      FRONTEND_VERSION: ''
     steps:
       - uses: actions/checkout@v2
       - name: Print env value
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
-        env:
-          LHCI_PEPORT_LINK: 'default link'
+          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
         
-        # uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
-      - name: Set env value from Json file value
+      # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
+      - name: Set env value from Json file
         run: |
           echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
           jq '.["http://localhost:8080/"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
+      - name: Load .env file to env $GITHUB_ENV
+        run: |
+          cat VERSION >> $GITHUB_ENV
+      
       - name: Print env value again
         run: |
           echo "---log LHCI_LINKS: ${{ env.LHCI_LINKS }}"
+          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
           echo "github.ref_name: ${{ github.ref_name }}"
   
       - name: Slack Notification
@@ -37,7 +47,8 @@ jobs:
           SLACK_CHANNEL: report-h2-website
           SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
           SLACK_ICON: https://avatars.slack-edge.com/temp/2021-12-24/2883044832516_3fa64da5b192dbbf4b70.png
-          SLACK_MESSAGE: "🏷️ v1.0.0 \n 🔗 ${{ env.LHCI_PEPORT_LINK }}"
+          SLACK_MESSAGE: "🏷️ v${{ env.FRONTEND_VERSION }} \n 🔗 ${{ env.LHCI_PEPORT_LINK }}"
           SLACK_TITLE: H2-website Report
           SLACK_USERNAME: Lighthouse Report
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
