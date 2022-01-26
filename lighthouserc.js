@@ -2,7 +2,7 @@ module.exports = {
   ci: {
     collect: {
       url: ['https://dev.health2sync.com'],
-      startServerCommand: 'npm run start',
+      // startServerCommand: 'npm run start',
     },
     upload: {
       target: 'temporary-public-storage',
