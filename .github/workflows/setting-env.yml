@@ -65,6 +65,8 @@ jobs:
       LHCI_PEPORT_INFO: ''
       FRONTEND_VERSION: ''
     steps:
+      - uses: actions/checkout@v2
+      
       - name: Download report & links result
         uses: actions/download-artifact@v2
         with:
