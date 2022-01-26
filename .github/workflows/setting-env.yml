@@ -7,12 +7,9 @@ on: push
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  settingEnv:
-    name: setting env
+  runLighthouse:
+    name: run lighthouse
     runs-on: ubuntu-latest
-    env:
-      LHCI_PEPORT_LINK: 'default-link'
-      FRONTEND_VERSION: ''
     steps:
       - uses: actions/checkout@v2
       
@@ -22,14 +19,24 @@ jobs:
           node-version: '14'
           cache: 'npm'
       
-      - name: npm install
-        run: npm ci
+      - run: npm install
       
       - name: run Lighthouse CI
         run: |
           npm install -g @lhci/cli@0.8.x
           lhci autorun
-          
+    
+  settingEnv:
+    needs: runLighthouse
+    if: ${{ always() }}
+    name: setting env
+    runs-on: ubuntu-latest
+    env:
+      LHCI_PEPORT_LINK: 'default-link'
+      FRONTEND_VERSION: ''
+    steps:
+      - uses: actions/checkout@v2
+
       - name: Print env value
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
