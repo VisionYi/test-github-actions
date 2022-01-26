@@ -2,6 +2,7 @@ module.exports = {
   ci: {
     collect: {
       url: ['https://dev.health2sync.com'],
+      numberOfRuns: 1,
       // startServerCommand: 'npm run start',
     },
     upload: {
