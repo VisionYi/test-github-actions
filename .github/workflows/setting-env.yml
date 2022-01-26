@@ -15,6 +15,18 @@ jobs:
       FRONTEND_VERSION: ''
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Use Node.js 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'npm'
+      
+      - name: run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.8.x
+          lhci autorun
+          
       - name: Print env value
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
@@ -24,10 +36,10 @@ jobs:
       - name: Set env value from Json file
         run: |
           echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
-          jq '.["http://localhost:8080/"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
+          jq '.["https://dev.health2sync.com"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
-      - name: Load .env file to env
+      - name: Load .env (VERSION) file to env
         run: |
           cat VERSION >> $GITHUB_ENV
       
