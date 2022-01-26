@@ -46,19 +46,14 @@ jobs:
         run: |
           lhci upload --target=filesystem --outputDir=./report
           
-      - name: Upload report online links result as artifact
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: lighthouse-links
-          path: .lighthouse/links.json
-
-      - name: Upload report info result as artifact
+      - name: Upload report & links result as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: lighthouse-report
-          path: report
+          path: |
+            .lighthouse/links.json
+            report
     
   settingEnv:
     needs: outputReport
@@ -70,15 +65,10 @@ jobs:
       LHCI_PEPORT_INFO: ''
       FRONTEND_VERSION: ''
     steps:
-      - name: Download report links result
+      - name: Download report & links result
         uses: actions/download-artifact@v2
         with:
-          name: lighthouse-links
-          
-      - name: Download report info result
-        uses: actions/download-artifact@v2
-        with:
-          name: report
+          name: lighthouse-report
 
       - name: Print env value
         run: |
