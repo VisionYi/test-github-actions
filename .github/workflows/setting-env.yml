@@ -20,7 +20,8 @@ jobs:
           cache: 'npm'
       
       - name: run install
-        run: npm install
+        if: steps.cache-primes.outputs.cache-hit != 'true'
+        run: npm ci
       
   outputReport:
     needs: projectInstall
@@ -41,6 +42,7 @@ jobs:
           lhci autorun
       
       - name: save report info to local filesystem
+        if: ${{ always() }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
           
