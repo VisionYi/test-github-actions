@@ -7,8 +7,8 @@ on: push
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  runLighthouse:
-    name: run lighthouse
+  projectInstall:
+    name: run npm install & cache
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,27 +19,64 @@ jobs:
           node-version: '14'
           cache: 'npm'
       
-      - run: npm install
+      - name: run install
+        run: npm install
+      
+  outputReport:
+    needs: projectInstall
+    name: output lighthouse report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use Node.js 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
       
       - name: run Lighthouse CI
         run: |
           npm install -g @lhci/cli@0.8.x
           lhci autorun
+      
+      - name: save report info to local filesystem
+        run: |
+          lhci upload --target=filesystem --outputDir=./report
+          
+      - name: Upload report online links result as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: lighthouse-links
+          path: .lighthouse/links.json
+
+      - name: Upload report info result as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: lighthouse-report
+          path: report
     
   settingEnv:
-    needs: runLighthouse
+    needs: outputReport
     if: ${{ always() }}
     name: setting env
     runs-on: ubuntu-latest
     env:
       LHCI_PEPORT_LINK: 'default-link'
+      LHCI_PEPORT_INFO: ''
       FRONTEND_VERSION: ''
     steps:
-      - uses: actions/checkout@v2
+      - name: Download report links result
+        uses: actions/download-artifact@v2
+        with:
+          name: lighthouse-links
+          
+      - name: Download report info result
+        uses: actions/download-artifact@v2
+        with:
+          name: report
 
       - name: Print env value
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
+          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
         
       # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
@@ -49,6 +86,12 @@ jobs:
           jq '.["https://dev.health2sync.com"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
+      - name: set env value from report manifest.json
+        run: |
+          echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
+          jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      
       - name: Load .env (VERSION) file to env
         run: |
           cat VERSION >> $GITHUB_ENV
@@ -56,6 +99,7 @@ jobs:
       - name: Print env value again
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
+          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
           echo "github.ref_name: ${{ github.ref_name }}"
   
