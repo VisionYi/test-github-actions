@@ -52,7 +52,7 @@ jobs:
         with:
           name: lighthouse-report
           path: |
-            .lighthouse/links.json
+            .lighthouseci/links.json
             report
     
   settingEnv:
