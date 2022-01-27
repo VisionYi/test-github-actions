@@ -46,7 +46,6 @@ jobs:
         run: |
           npm install -g @lhci/cli@0.8.x
           lhci autorun
-          echo "WORKFLOW_STATUS=${{ job.status }}" >> $GITHUB_ENV
       
       - name: Save report info to local filesystem
         if: ${{ always() }}
@@ -60,9 +59,22 @@ jobs:
           echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
           jq '.["https://dev.health2sync.com/"]' .lighthouseci/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          
           echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
           jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          
+          echo "WORKFLOW_STATUS=${{ job.status }}" >> $GITHUB_ENV
+          
+      - name: Print env value
+        if: ${{ always() }}
+        run: |
+          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
+          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
+          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
+          echo "---log WORKFLOW_STATUS: ${{ env.WORKFLOW_STATUS }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "job.status: ${{ job.status }}"
     
   settingEnv:
     needs: outputReport
@@ -84,11 +96,10 @@ jobs:
           echo "---log WORKFLOW_STATUS: ${{ env.WORKFLOW_STATUS }}"
           echo "github.ref_name: ${{ github.ref_name }}"
           echo "job.status: ${{ job.status }}"
-          echo "github.action_status: ${{ github.action_status }}"
   
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
-        if: ${{ github.ref_name == 'master' || github.ref_name == 'manual-github-action' }}
+        if: ${{ github.ref_name == 'master' || github.ref_name == 'manual-github' }}
         env:
           SLACK_CHANNEL: report-h2-website
           SLACK_COLOR: ${{ env.WORKFLOW_STATUS }} # or a specific color like 'good' or '#ff00ff'
