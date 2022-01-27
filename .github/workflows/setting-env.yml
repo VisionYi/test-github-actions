@@ -57,7 +57,7 @@ jobs:
     
   settingEnv:
     needs: outputReport
-    if: ${{ always() }}
+    if: ${{ success() || failure() }}
     name: setting env
     runs-on: ubuntu-latest
     env:
@@ -101,10 +101,12 @@ jobs:
           echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
           echo "github.ref_name: ${{ github.ref_name }}"
+          echo "job.status: ${{ job.status }}"
+          echo "github.action_status: ${{ github.action_status }}"
   
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
-        if: ${{ github.ref_name == 'master' }}
+        if: ${{ github.ref_name == 'master' || github.ref_name == 'manual-github-action' }}
         env:
           SLACK_CHANNEL: report-h2-website
           SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
