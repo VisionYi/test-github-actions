@@ -82,7 +82,7 @@ jobs:
       - name: Set env value from Json file
         run: |
           echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
-          jq '.["https://dev.health2sync.com/"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
+          jq '.["https://dev.health2sync.com/"]' .lighthouseci/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       
       - name: set env value from report manifest.json
