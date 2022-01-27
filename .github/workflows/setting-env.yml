@@ -42,14 +42,14 @@ jobs:
           lhci autorun
       
       - name: Save report info to local filesystem
-        if: ${{ always() }}
+        if: ${{ always() && (github.ref_name == 'master' || github.ref_name == 'test-github-action') }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
           
           echo "WORKFLOW_STATUS=${{ job.status }}" >> report/.env
           
       - name: Upload report & links result as artifact
-        if: ${{ always() }}
+        if: ${{ always() && (github.ref_name == 'master' || github.ref_name == 'test-github-action') }}
         uses: actions/upload-artifact@v2
         with:
           name: lighthouse-report
@@ -59,7 +59,7 @@ jobs:
     
   settingEnv:
     needs: outputReport
-    if: ${{ success() || failure() }}
+    if: ${{ always() && (github.ref_name == 'master' || github.ref_name == 'test-github-action') }}
     name: setting env
     runs-on: ubuntu-latest
     env:
