@@ -41,10 +41,12 @@ jobs:
           npm install -g @lhci/cli@0.8.x
           lhci autorun
       
-      - name: save report info to local filesystem
+      - name: Save report info to local filesystem
         if: ${{ always() }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
+          
+          echo "WORKFLOW_STATUS=${{ job.status }}" >> report/.env
           
       - name: Upload report & links result as artifact
         if: ${{ always() }}
@@ -52,18 +54,19 @@ jobs:
         with:
           name: lighthouse-report
           path: |
-            .lighthouse/links.json
+            .lighthouseci/links.json
             report
     
   settingEnv:
     needs: outputReport
-    if: ${{ always() }}
+    if: ${{ success() || failure() }}
     name: setting env
     runs-on: ubuntu-latest
     env:
       LHCI_PEPORT_LINK: 'default-link'
       LHCI_PEPORT_INFO: ''
       FRONTEND_VERSION: ''
+      WORKFLOW_STATUS: ''
     steps:
       - uses: actions/checkout@v2
       
@@ -71,22 +74,15 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: lighthouse-report
-
-      - name: Print env value
-        run: |
-          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
-          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
-          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
-        
+      
       # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
-      - name: Set env value from Json file
+      - name: Set env value from links.json and manifest.json
+        if: ${{ always() }}
         run: |
           echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
-          jq '.["https://dev.health2sync.com"]' .lighthouse/links.json --raw-output >> $GITHUB_ENV
+          jq '.["https://dev.health2sync.com/"]' .lighthouseci/links.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
-      
-      - name: set env value from report manifest.json
-        run: |
+          
           echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
           jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
@@ -94,22 +90,25 @@ jobs:
       - name: Load .env (VERSION) file to env
         run: |
           cat VERSION >> $GITHUB_ENV
+          cat report/.env >> $GITHUB_ENV
       
       - name: Print env value again
         run: |
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
           echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
+          echo "---log WORKFLOW_STATUS: ${{ env.WORKFLOW_STATUS }}"
           echo "github.ref_name: ${{ github.ref_name }}"
+          echo "job.status: ${{ job.status }}"
   
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
-        if: ${{ github.ref_name == 'master' }}
+        if: ${{ github.ref_name == 'master' || github.ref_name == 'manual-github' }}
         env:
           SLACK_CHANNEL: report-h2-website
-          SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
+          SLACK_COLOR: ${{ env.WORKFLOW_STATUS }} # or a specific color like 'good' or '#ff00ff'
           SLACK_ICON: https://avatars.slack-edge.com/temp/2021-12-24/2883044832516_3fa64da5b192dbbf4b70.png
-          SLACK_MESSAGE: "🏷️ v${{ env.FRONTEND_VERSION }} \n 🔗 ${{ env.LHCI_PEPORT_LINK }}"
+          SLACK_MESSAGE: "🏷️ Version: ${{ env.FRONTEND_VERSION }} \n ${{ env.LHCI_PEPORT_INFO }} \n 🔗 Report link: ${{ env.LHCI_PEPORT_LINK }}"
           SLACK_TITLE: H2-website Report
           SLACK_USERNAME: Lighthouse Report
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
