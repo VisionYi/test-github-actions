@@ -46,7 +46,7 @@ jobs:
         run: |
           lhci upload --target=filesystem --outputDir=./report
           
-          echo "WORKFLOW_STATUS=${{ job.status }}" >> VERSION
+          echo "WORKFLOW_STATUS=${{ job.status }}" >> report/.env
           
       - name: Upload report & links result as artifact
         if: ${{ always() }}
@@ -90,6 +90,7 @@ jobs:
       - name: Load .env (VERSION) file to env
         run: |
           cat VERSION >> $GITHUB_ENV
+          cat report/.env >> $GITHUB_ENV
       
       - name: Print env value again
         run: |
