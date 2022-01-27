@@ -5,6 +5,12 @@ name: Setting Env
 # Controls when the workflow will run
 on: push
 
+env:
+  LHCI_PEPORT_LINK: 'default-link'
+  LHCI_PEPORT_INFO: ''
+  FRONTEND_VERSION: ''
+  WORKFLOW_STATUS: ''
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   projectInstall:
@@ -40,56 +46,31 @@ jobs:
         run: |
           npm install -g @lhci/cli@0.8.x
           lhci autorun
+          echo "WORKFLOW_STATUS=${{ job.status }}" >> $GITHUB_ENV
       
-      - name: save report info to local filesystem
+      - name: Save report info to local filesystem
         if: ${{ always() }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
-          
-      - name: Upload report & links result as artifact
+      
+      # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
+      - name: Set env value from links.json and manifest.json
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: lighthouse-report
-          path: |
-            .lighthouseci/links.json
-            report
+        run: |
+          echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
+          jq '.["https://dev.health2sync.com/"]' .lighthouseci/links.json --raw-output >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
+          jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
     
   settingEnv:
     needs: outputReport
     if: ${{ success() || failure() }}
     name: setting env
     runs-on: ubuntu-latest
-    env:
-      LHCI_PEPORT_LINK: 'default-link'
-      LHCI_PEPORT_INFO: ''
-      FRONTEND_VERSION: ''
     steps:
       - uses: actions/checkout@v2
-      
-      - name: Download report & links result
-        uses: actions/download-artifact@v2
-        with:
-          name: lighthouse-report
-
-      - name: Print env value
-        run: |
-          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
-          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
-          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
-        
-      # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
-      - name: Set env value from Json file
-        run: |
-          echo 'LHCI_PEPORT_LINK<<EOF' >> $GITHUB_ENV
-          jq '.["https://dev.health2sync.com/"]' .lighthouseci/links.json --raw-output >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      
-      - name: set env value from report manifest.json
-        run: |
-          echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
-          jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
       
       - name: Load .env (VERSION) file to env
         run: |
@@ -100,6 +81,7 @@ jobs:
           echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
           echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
           echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
+          echo "---log WORKFLOW_STATUS: ${{ env.WORKFLOW_STATUS }}"
           echo "github.ref_name: ${{ github.ref_name }}"
           echo "job.status: ${{ job.status }}"
           echo "github.action_status: ${{ github.action_status }}"
@@ -109,9 +91,9 @@ jobs:
         if: ${{ github.ref_name == 'master' || github.ref_name == 'manual-github-action' }}
         env:
           SLACK_CHANNEL: report-h2-website
-          SLACK_COLOR: ${{ github.action_status }} # or a specific color like 'good' or '#ff00ff'
+          SLACK_COLOR: ${{ env.WORKFLOW_STATUS }} # or a specific color like 'good' or '#ff00ff'
           SLACK_ICON: https://avatars.slack-edge.com/temp/2021-12-24/2883044832516_3fa64da5b192dbbf4b70.png
-          SLACK_MESSAGE: "🏷️ v${{ env.FRONTEND_VERSION }} \n ${{ env.LHCI_PEPORT_INFO }} \n 🔗  [report link](${{ env.LHCI_PEPORT_LINK }})"
+          SLACK_MESSAGE: "🏷️ Version: ${{ env.FRONTEND_VERSION }} \n ${{ env.LHCI_PEPORT_INFO }} \n 🔗 Report link: ${{ env.LHCI_PEPORT_LINK }}"
           SLACK_TITLE: H2-website Report
           SLACK_USERNAME: Lighthouse Report
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
