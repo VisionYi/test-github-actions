@@ -5,6 +5,9 @@ name: Setting Env
 # Controls when the workflow will run
 on: push
 
+env:
+  WORKFLOW_ENABLE_SEND_REPORT: ${{ github.ref_name == 'master' || github.ref_name == 'test-github-action' }}
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   projectInstall:
@@ -42,14 +45,14 @@ jobs:
           lhci autorun
       
       - name: Save report info to local filesystem
-        if: ${{ always() }}
+        if: ${{ always() && env.WORKFLOW_ENABLE_SEND_REPORT }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
           
           echo "WORKFLOW_STATUS=${{ job.status }}" >> report/.env
           
       - name: Upload report & links result as artifact
-        if: ${{ always() }}
+        if: ${{ always() && env.WORKFLOW_ENABLE_SEND_REPORT }}
         uses: actions/upload-artifact@v2
         with:
           name: lighthouse-report
@@ -59,7 +62,7 @@ jobs:
     
   settingEnv:
     needs: outputReport
-    if: ${{ success() || failure() }}
+    if: ${{ always() && env.WORKFLOW_ENABLE_SEND_REPORT) }}
     name: setting env
     runs-on: ubuntu-latest
     env:
