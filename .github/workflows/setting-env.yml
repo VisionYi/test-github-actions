@@ -5,12 +5,6 @@ name: Setting Env
 # Controls when the workflow will run
 on: push
 
-env:
-  LHCI_PEPORT_LINK: 'default-link'
-  LHCI_PEPORT_INFO: ''
-  FRONTEND_VERSION: ''
-  WORKFLOW_STATUS: ''
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   projectInstall:
@@ -51,6 +45,35 @@ jobs:
         if: ${{ always() }}
         run: |
           lhci upload --target=filesystem --outputDir=./report
+          
+          echo "WORKFLOW_STATUS=${{ job.status }}" >> VERSION
+          
+      - name: Upload report & links result as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: lighthouse-report
+          path: |
+            .lighthouseci/links.json
+            report
+    
+  settingEnv:
+    needs: outputReport
+    if: ${{ success() || failure() }}
+    name: setting env
+    runs-on: ubuntu-latest
+    env:
+      LHCI_PEPORT_LINK: 'default-link'
+      LHCI_PEPORT_INFO: ''
+      FRONTEND_VERSION: ''
+      WORKFLOW_STATUS: ''
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Download report & links result
+        uses: actions/download-artifact@v2
+        with:
+          name: lighthouse-report
       
       # $GITHUB_ENV uasage reference: https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#multiline-strings
       - name: Set env value from links.json and manifest.json
@@ -63,26 +86,6 @@ jobs:
           echo 'LHCI_PEPORT_INFO<<EOF' >> $GITHUB_ENV
           jq '.[] | select(.isRepresentativeRun==true) | .summary' report/manifest.json --raw-output >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
-          
-          echo "WORKFLOW_STATUS=${{ job.status }}" >> $GITHUB_ENV
-          
-      - name: Print env value
-        if: ${{ always() }}
-        run: |
-          echo "---log LHCI_PEPORT_LINK: ${{ env.LHCI_PEPORT_LINK }}"
-          echo "---log LHCI_PEPORT_INFO: ${{ env.LHCI_PEPORT_INFO }}"
-          echo "---log FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}"
-          echo "---log WORKFLOW_STATUS: ${{ env.WORKFLOW_STATUS }}"
-          echo "github.ref_name: ${{ github.ref_name }}"
-          echo "job.status: ${{ job.status }}"
-    
-  settingEnv:
-    needs: outputReport
-    if: ${{ success() || failure() }}
-    name: setting env
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
       
       - name: Load .env (VERSION) file to env
         run: |
